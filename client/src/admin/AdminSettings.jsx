@@ -3,6 +3,8 @@ import API_URL from "../config/api";
 import { useSiteSettings } from "../context/SiteSettingsContext";
 
 const emptySettingsForm = {
+  logoUrl: "",
+
   siteNameAr: "",
   siteNameEn: "",
   siteNameTr: "",
@@ -39,9 +41,18 @@ function AdminSettings() {
   const [selectedImage, setSelectedImage] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [selectedLogo, setSelectedLogo] = useState(null);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+
+  const heroImagesPreview = form.heroImagesText
+    .split("\n")
+    .map((item) => item.trim())
+    .filter((item) => item !== "");
 
   useEffect(() => {
     setForm({
+      logoUrl: settings.logoUrl || "",
+
       siteNameAr: settings.siteNameAr || "",
       siteNameEn: settings.siteNameEn || "",
       siteNameTr: settings.siteNameTr || "",
@@ -92,6 +103,19 @@ function AdminSettings() {
     setMessage("");
   }
 
+  function removeHeroImage(indexToRemove) {
+    const nextImages = heroImagesPreview.filter(
+      (_, index) => index !== indexToRemove,
+    );
+
+    setForm({
+      ...form,
+      heroImagesText: nextImages.join("\n"),
+    });
+
+    setMessage("تم حذف الصورة من القائمة. اضغط حفظ لتطبيق التغيير.");
+  }
+
   async function uploadHeroImage() {
     if (!selectedImage) {
       setMessage("اختر صورة أولًا");
@@ -136,6 +160,66 @@ function AdminSettings() {
     }
   }
 
+  function handleLogoChange(event) {
+    const file = event.target.files[0];
+
+    if (!file) return;
+
+    setSelectedLogo(file);
+    setMessage("");
+  }
+
+  async function uploadLogoImage() {
+    if (!selectedLogo) {
+      setMessage("اختر صورة اللوجو أولًا");
+      return;
+    }
+
+    try {
+      setIsUploadingLogo(true);
+      setMessage("");
+
+      const formData = new FormData();
+      formData.append("image", selectedLogo);
+
+      const response = await fetch(`${API_URL}/api/upload`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setMessage(data.message || "فشل رفع اللوجو");
+        return;
+      }
+
+      setForm({
+        ...form,
+        logoUrl: data.imageUrl,
+      });
+
+      setSelectedLogo(null);
+      setMessage("تم رفع اللوجو بنجاح");
+    } catch (error) {
+      setMessage("تعذر رفع اللوجو");
+    } finally {
+      setIsUploadingLogo(false);
+    }
+  }
+
+  function removeLogo() {
+    setForm({
+      ...form,
+      logoUrl: "",
+    });
+
+    setSelectedLogo(null);
+    setMessage("تم حذف اللوجو من الإعدادات، اضغط حفظ لتأكيد التغيير");
+  }
   async function handleSubmit(event) {
     event.preventDefault();
 
@@ -149,6 +233,8 @@ function AdminSettings() {
         .filter((item) => item !== "");
 
       const payload = {
+        logoUrl: form.logoUrl,
+
         siteNameAr: form.siteNameAr,
         siteNameEn: form.siteNameEn,
         siteNameTr: form.siteNameTr,
@@ -205,9 +291,21 @@ function AdminSettings() {
 
   return (
     <section className="admin-section">
-      <div className="admin-section-title">
-        <h2>إعدادات الموقع</h2>
-        <p>تحكم باسم الشركة، معلومات التواصل، الفوتر، وصور الواجهة الرئيسية.</p>
+      <div className="admin-section-title admin-settings-title">
+        <div>
+          <h2>إعدادات الموقع</h2>
+          <p>
+            تحكم باسم الشركة، معلومات التواصل، الفوتر، وصور الواجهة الرئيسية.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          className="admin-secondary-action"
+          onClick={fetchSettings}
+        >
+          تحديث الإعدادات
+        </button>
       </div>
 
       {message && <p className="admin-info-message">{message}</p>}
@@ -238,6 +336,38 @@ function AdminSettings() {
           value={form.siteNameTr}
           onChange={handleChange}
         />
+        <h3 className="admin-form-heading">لوجو الموقع</h3>
+
+        <div className="image-upload-box logo-upload-box">
+          <label>رفع لوجو يظهر بجانب اسم الموقع في الهيدر</label>
+
+          <input type="file" accept="image/*" onChange={handleLogoChange} />
+
+          <button
+            type="button"
+            className="upload-btn"
+            onClick={uploadLogoImage}
+            disabled={isUploadingLogo}
+          >
+            {isUploadingLogo ? "جاري رفع اللوجو..." : "رفع اللوجو"}
+          </button>
+
+          {form.logoUrl && (
+            <div className="logo-preview-box">
+              <p>اللوجو الحالي:</p>
+
+              <img
+                src={form.logoUrl}
+                alt="Site logo"
+                className="admin-logo-preview"
+              />
+
+              <button type="button" className="delete-btn" onClick={removeLogo}>
+                حذف اللوجو
+              </button>
+            </div>
+          )}
+        </div>
 
         <h3 className="admin-form-heading">وصف الفوتر</h3>
 
@@ -395,6 +525,22 @@ function AdminSettings() {
           onChange={handleChange}
           className="hero-images-textarea"
         ></textarea>
+
+        {heroImagesPreview.length > 0 && (
+          <div className="settings-hero-preview-grid">
+            {heroImagesPreview.map((imageUrl, index) => (
+              <div
+                className="settings-hero-preview-card"
+                key={`${imageUrl}-${index}`}
+              >
+                <img src={imageUrl} alt={`Hero ${index + 1}`} />
+                <button type="button" onClick={() => removeHeroImage(index)}>
+                  حذف
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
 
         <div className="admin-form-actions">
           <button type="submit" disabled={isSaving}>

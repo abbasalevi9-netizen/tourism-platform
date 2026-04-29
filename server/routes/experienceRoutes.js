@@ -4,13 +4,110 @@ const { protect, adminOnly } = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
+const languageSuffixes = [
+  "Ar",
+  "ArEg",
+  "ArMa",
+  "ArDz",
+  "En",
+  "Tr",
+  "Fr",
+  "De",
+  "Es",
+  "It",
+  "Ru",
+];
+
+const localizedBaseFields = ["title", "country", "city", "description"];
+
+const categoryValues = ["tour", "flight", "attraction", "activity"];
+
+function cleanString(value) {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  return value.trim();
+}
+
+function buildLocalizedPayload(body, isCreate = false) {
+  const payload = {};
+
+  localizedBaseFields.forEach((baseField) => {
+    languageSuffixes.forEach((suffix) => {
+      const fieldName = `${baseField}${suffix}`;
+
+      if (isCreate || Object.prototype.hasOwnProperty.call(body, fieldName)) {
+        payload[fieldName] = cleanString(body[fieldName]);
+      }
+    });
+  });
+
+  if (isCreate || Object.prototype.hasOwnProperty.call(payload, "countryAr")) {
+    payload.countryAr = payload.countryAr || "غير محدد";
+  }
+
+  if (
+    isCreate ||
+    Object.prototype.hasOwnProperty.call(payload, "descriptionAr")
+  ) {
+    payload.descriptionAr = payload.descriptionAr || "لا يوجد وصف حاليًا";
+  }
+
+  return payload;
+}
+
+function buildExperiencePayload(body, isCreate = false) {
+  const payload = {
+    ...buildLocalizedPayload(body, isCreate),
+  };
+
+  if (isCreate || Object.prototype.hasOwnProperty.call(body, "category")) {
+    payload.category = categoryValues.includes(body.category)
+      ? body.category
+      : "tour";
+  }
+
+  if (isCreate || Object.prototype.hasOwnProperty.call(body, "price")) {
+    payload.price = Number(body.price);
+  }
+
+  if (isCreate || Object.prototype.hasOwnProperty.call(body, "currency")) {
+    payload.currency = cleanString(body.currency) || "$";
+  }
+
+  if (isCreate || Object.prototype.hasOwnProperty.call(body, "duration")) {
+    payload.duration = cleanString(body.duration) || "غير محددة";
+  }
+
+  if (isCreate || Object.prototype.hasOwnProperty.call(body, "image")) {
+    payload.image = cleanString(body.image);
+  }
+
+  if (isCreate || Object.prototype.hasOwnProperty.call(body, "rating")) {
+    payload.rating = body.rating === undefined ? 5 : Number(body.rating) || 5;
+  }
+
+  if (isCreate || Object.prototype.hasOwnProperty.call(body, "featured")) {
+    payload.featured = body.featured === undefined ? true : body.featured;
+  }
+
+  if (isCreate || Object.prototype.hasOwnProperty.call(body, "isActive")) {
+    payload.isActive = body.isActive === undefined ? true : body.isActive;
+  }
+
+  return payload;
+}
+
+function getSearchFields() {
+  return localizedBaseFields.flatMap((baseField) =>
+    languageSuffixes.map((suffix) => `${baseField}${suffix}`),
+  );
+}
+
 /*
   GET /api/experiences
   Public
-  Query examples:
-  /api/experiences
-  /api/experiences?category=tour
-  /api/experiences?search=istanbul
 */
 router.get("/", async (req, res) => {
   try {
@@ -25,17 +122,9 @@ router.get("/", async (req, res) => {
     }
 
     if (search) {
-      filter.$or = [
-        { titleAr: { $regex: search, $options: "i" } },
-        { titleEn: { $regex: search, $options: "i" } },
-        { titleTr: { $regex: search, $options: "i" } },
-        { countryAr: { $regex: search, $options: "i" } },
-        { countryEn: { $regex: search, $options: "i" } },
-        { countryTr: { $regex: search, $options: "i" } },
-        { cityAr: { $regex: search, $options: "i" } },
-        { cityEn: { $regex: search, $options: "i" } },
-        { cityTr: { $regex: search, $options: "i" } },
-      ];
+      filter.$or = getSearchFields().map((fieldName) => ({
+        [fieldName]: { $regex: search, $options: "i" },
+      }));
     }
 
     const experiences = await Experience.find(filter).sort({ createdAt: -1 });
@@ -51,7 +140,6 @@ router.get("/", async (req, res) => {
 /*
   GET /api/experiences/admin/all
   Admin only
-  Shows active and inactive
 */
 router.get("/admin/all", protect, adminOnly, async (req, res) => {
   try {
@@ -93,63 +181,19 @@ router.get("/:id", async (req, res) => {
 */
 router.post("/", protect, adminOnly, async (req, res) => {
   try {
-    const {
-      category,
-      titleAr,
-      titleEn,
-      titleTr,
-      countryAr,
-      countryEn,
-      countryTr,
-      cityAr,
-      cityEn,
-      cityTr,
-      descriptionAr,
-      descriptionEn,
-      descriptionTr,
-      price,
-      currency,
-      duration,
-      image,
-      rating,
-      featured,
-      isActive,
-    } = req.body;
+    const experienceData = buildExperiencePayload(req.body, true);
 
-    if (!titleAr || price === undefined || !image) {
+    if (
+      !experienceData.titleAr ||
+      Number.isNaN(experienceData.price) ||
+      !experienceData.image
+    ) {
       return res.status(400).json({
         message: "المطلوب: العنوان العربي، السعر، والصورة",
       });
     }
 
-    const experience = await Experience.create({
-      category: category || "tour",
-
-      titleAr,
-      titleEn: titleEn || "",
-      titleTr: titleTr || "",
-
-      countryAr: countryAr || "غير محدد",
-      countryEn: countryEn || "",
-      countryTr: countryTr || "",
-
-      cityAr: cityAr || "",
-      cityEn: cityEn || "",
-      cityTr: cityTr || "",
-
-      descriptionAr: descriptionAr || "لا يوجد وصف حاليًا",
-      descriptionEn: descriptionEn || "",
-      descriptionTr: descriptionTr || "",
-
-      price: Number(price),
-      currency: currency || "$",
-      duration: duration || "غير محددة",
-      image,
-
-      rating: rating === undefined ? 5 : Number(rating),
-      featured: featured === undefined ? true : featured,
-      isActive: isActive === undefined ? true : isActive,
-    });
+    const experience = await Experience.create(experienceData);
 
     res.status(201).json(experience);
   } catch (error) {
@@ -165,13 +209,15 @@ router.post("/", protect, adminOnly, async (req, res) => {
 */
 router.put("/:id", protect, adminOnly, async (req, res) => {
   try {
+    const experienceData = buildExperiencePayload(req.body, false);
+
     const experience = await Experience.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      experienceData,
       {
         new: true,
         runValidators: true,
-      }
+      },
     );
 
     if (!experience) {

@@ -1,62 +1,165 @@
 import { Link } from "react-router-dom";
 import { useLanguage } from "../context/LanguageContext";
 
+const languageSuffixMap = {
+  ar: "Ar",
+  "ar-eg": "ArEg",
+  "ar-ma": "ArMa",
+  "ar-dz": "ArDz",
+  en: "En",
+  tr: "Tr",
+  fr: "Fr",
+  de: "De",
+  es: "Es",
+  it: "It",
+  ru: "Ru",
+};
+
+const fallbackSuffixesMap = {
+  Ar: ["Ar", "En"],
+  ArEg: ["ArEg", "Ar", "En"],
+  ArMa: ["ArMa", "Ar", "En"],
+  ArDz: ["ArDz", "Ar", "En"],
+  En: ["En", "Ar"],
+  Tr: ["Tr", "Ar", "En"],
+  Fr: ["Fr", "En", "Ar"],
+  De: ["De", "En", "Ar"],
+  Es: ["Es", "En", "Ar"],
+  It: ["It", "En", "Ar"],
+  Ru: ["Ru", "En", "Ar"],
+};
+
+const categoryText = {
+  ar: {
+    tour: "رحلات سياحية",
+    flight: "رحلات طيران",
+    attraction: "معالم سياحية",
+    activity: "أنشطة وتجارب",
+  },
+  en: {
+    tour: "Tours",
+    flight: "Flights",
+    attraction: "Attractions",
+    activity: "Activities",
+  },
+  tr: {
+    tour: "Turlar",
+    flight: "Uçuşlar",
+    attraction: "Gezilecek Yerler",
+    activity: "Aktiviteler",
+  },
+  fr: {
+    tour: "Circuits",
+    flight: "Vols",
+    attraction: "Attractions",
+    activity: "Activités",
+  },
+  de: {
+    tour: "Touren",
+    flight: "Flüge",
+    attraction: "Sehenswürdigkeiten",
+    activity: "Aktivitäten",
+  },
+  es: {
+    tour: "Tours",
+    flight: "Vuelos",
+    attraction: "Atracciones",
+    activity: "Actividades",
+  },
+  it: {
+    tour: "Tour",
+    flight: "Voli",
+    attraction: "Attrazioni",
+    activity: "Attività",
+  },
+  ru: {
+    tour: "Туры",
+    flight: "Авиаперелеты",
+    attraction: "Достопримечательности",
+    activity: "Активности",
+  },
+};
+
+function getLocalizedField(item, baseName, language) {
+  const suffix = languageSuffixMap[language] || "Ar";
+  const fallbackSuffixes = fallbackSuffixesMap[suffix] || ["Ar", "En"];
+
+  for (const currentSuffix of fallbackSuffixes) {
+    const value = item?.[`${baseName}${currentSuffix}`];
+
+    if (typeof value === "string" && value.trim() !== "") {
+      return value;
+    }
+  }
+
+  return "";
+}
+
 function ExperienceCard({ experience }) {
   const { language, t } = useLanguage();
 
-  function getText() {
-    if (language === "en") {
-      return {
-        title: experience.titleEn || experience.titleAr,
-        country: experience.countryEn || experience.countryAr,
-        city: experience.cityEn || experience.cityAr,
-        description: experience.descriptionEn || experience.descriptionAr,
-      };
-    }
+  const title =
+    getLocalizedField(experience, "title", language) ||
+    t.untitledDestination ||
+    "Untitled";
 
-    if (language === "tr") {
-      return {
-        title: experience.titleTr || experience.titleAr,
-        country: experience.countryTr || experience.countryAr,
-        city: experience.cityTr || experience.cityAr,
-        description: experience.descriptionTr || experience.descriptionAr,
-      };
-    }
+  const country =
+    getLocalizedField(experience, "country", language) ||
+    t.notSpecified ||
+    "Not specified";
 
-    return {
-      title: experience.titleAr,
-      country: experience.countryAr,
-      city: experience.cityAr,
-      description: experience.descriptionAr,
-    };
-  }
+  const city = getLocalizedField(experience, "city", language);
 
-  const translated = getText();
+  const description =
+    getLocalizedField(experience, "description", language) ||
+    t.noDescription ||
+    "No description available";
+
+  const labelSet = categoryText[language] || categoryText.ar;
+  const categoryLabel =
+    labelSet[experience.category] || categoryText.en[experience.category] || "";
 
   return (
-    <article className="experience-card">
-      <div className="experience-image">
-        <img src={experience.image} alt={translated.title} />
+    <article className="experience-card rahal-experience-card">
+      <Link
+        to={`/experiences/${experience._id}`}
+        className="rahal-card-image-link"
+      >
+        <div className="experience-image rahal-experience-image">
+          <img src={experience.image} alt={title} />
 
-        <span className="experience-rating">⭐ {experience.rating || 5}</span>
-      </div>
+          {categoryLabel && (
+            <span className="rahal-card-category">{categoryLabel}</span>
+          )}
 
-      <div className="experience-content">
-        <p className="experience-location">
-          {translated.city || translated.country}
-        </p>
+          <span className="experience-rating rahal-card-rating">
+            ⭐ {experience.rating || 5}
+          </span>
 
-        <h3>{translated.title}</h3>
+          <div className="rahal-card-overlay">
+            <p>{city || country}</p>
+            <h3>{title}</h3>
+          </div>
+        </div>
+      </Link>
 
-        <p className="experience-description">{translated.description}</p>
+      <div className="experience-content rahal-card-content">
+        <p className="experience-location">{city || country}</p>
 
-        <div className="experience-footer">
+        <h3>{title}</h3>
+
+        <p className="experience-description">{description}</p>
+
+        <div className="experience-footer rahal-card-footer">
           <span>
             {t.startingFrom || "Starting from"} {experience.price}{" "}
             {experience.currency || "$"}
           </span>
 
-          <Link to={`/experiences/${experience._id}`}>
+          <Link
+            to={`/experiences/${experience._id}`}
+            className="rahal-card-btn"
+          >
             {t.viewDetails || "View Details"}
           </Link>
         </div>

@@ -3,24 +3,133 @@ import { useNavigate } from "react-router-dom";
 import API_URL from "../config/api";
 import AdminSettings from "./AdminSettings";
 
+const contentLanguages = [
+  {
+    code: "ar",
+    suffix: "Ar",
+    tabLabel: "العربية",
+    heading: "البيانات العربية",
+    titlePlaceholder: "العنوان بالعربية",
+    countryPlaceholder: "الدولة بالعربية",
+    cityPlaceholder: "المدينة بالعربية",
+    descriptionPlaceholder: "الوصف بالعربية",
+  },
+  {
+    code: "ar-eg",
+    suffix: "ArEg",
+    tabLabel: "مصري",
+    heading: "البيانات باللهجة المصرية",
+    titlePlaceholder: "العنوان بالمصري",
+    countryPlaceholder: "الدولة بالمصري",
+    cityPlaceholder: "المدينة بالمصري",
+    descriptionPlaceholder: "الوصف بالمصري",
+  },
+  {
+    code: "ar-ma",
+    suffix: "ArMa",
+    tabLabel: "مغربي",
+    heading: "البيانات بالدارجة المغربية",
+    titlePlaceholder: "العنوان بالمغربي",
+    countryPlaceholder: "الدولة بالمغربي",
+    cityPlaceholder: "المدينة بالمغربي",
+    descriptionPlaceholder: "الوصف بالمغربي",
+  },
+  {
+    code: "ar-dz",
+    suffix: "ArDz",
+    tabLabel: "جزائري",
+    heading: "البيانات باللهجة الجزائرية",
+    titlePlaceholder: "العنوان بالجزائري",
+    countryPlaceholder: "الدولة بالجزائري",
+    cityPlaceholder: "المدينة بالجزائري",
+    descriptionPlaceholder: "الوصف بالجزائري",
+  },
+  {
+    code: "en",
+    suffix: "En",
+    tabLabel: "English",
+    heading: "English Data",
+    titlePlaceholder: "Title in English",
+    countryPlaceholder: "Country in English",
+    cityPlaceholder: "City in English",
+    descriptionPlaceholder: "Description in English",
+  },
+  {
+    code: "tr",
+    suffix: "Tr",
+    tabLabel: "Türkçe",
+    heading: "Türkçe Bilgiler",
+    titlePlaceholder: "Türkçe başlık",
+    countryPlaceholder: "Türkçe ülke",
+    cityPlaceholder: "Türkçe şehir",
+    descriptionPlaceholder: "Türkçe açıklama",
+  },
+  {
+    code: "fr",
+    suffix: "Fr",
+    tabLabel: "Français",
+    heading: "Données en français",
+    titlePlaceholder: "Titre en français",
+    countryPlaceholder: "Pays en français",
+    cityPlaceholder: "Ville en français",
+    descriptionPlaceholder: "Description en français",
+  },
+  {
+    code: "de",
+    suffix: "De",
+    tabLabel: "Deutsch",
+    heading: "Deutsche Daten",
+    titlePlaceholder: "Titel auf Deutsch",
+    countryPlaceholder: "Land auf Deutsch",
+    cityPlaceholder: "Stadt auf Deutsch",
+    descriptionPlaceholder: "Beschreibung auf Deutsch",
+  },
+  {
+    code: "es",
+    suffix: "Es",
+    tabLabel: "Español",
+    heading: "Datos en español",
+    titlePlaceholder: "Título en español",
+    countryPlaceholder: "País en español",
+    cityPlaceholder: "Ciudad en español",
+    descriptionPlaceholder: "Descripción en español",
+  },
+  {
+    code: "it",
+    suffix: "It",
+    tabLabel: "Italiano",
+    heading: "Dati in italiano",
+    titlePlaceholder: "Titolo in italiano",
+    countryPlaceholder: "Paese in italiano",
+    cityPlaceholder: "Città in italiano",
+    descriptionPlaceholder: "Descrizione in italiano",
+  },
+  {
+    code: "ru",
+    suffix: "Ru",
+    tabLabel: "Русский",
+    heading: "Данные на русском",
+    titlePlaceholder: "Название на русском",
+    countryPlaceholder: "Страна на русском",
+    cityPlaceholder: "Город на русском",
+    descriptionPlaceholder: "Описание на русском",
+  },
+];
+
+function createEmptyLocalizedFields() {
+  return contentLanguages.reduce((fields, language) => {
+    fields[`title${language.suffix}`] = "";
+    fields[`country${language.suffix}`] = "";
+    fields[`city${language.suffix}`] = "";
+    fields[`description${language.suffix}`] = "";
+    return fields;
+  }, {});
+}
+
 const emptyExperienceForm = {
   category: "tour",
 
-  titleAr: "",
-  titleEn: "",
-  titleTr: "",
-
-  countryAr: "",
-  countryEn: "",
-  countryTr: "",
-
-  cityAr: "",
-  cityEn: "",
-  cityTr: "",
-
-  descriptionAr: "",
-  descriptionEn: "",
-  descriptionTr: "",
+  ...createEmptyLocalizedFields(),
 
   price: "",
   currency: "$",
@@ -55,6 +164,58 @@ const contactMethodLabels = {
   call: "اتصال",
   email: "إيميل",
 };
+
+function getContentTitle(experience) {
+  return (
+    experience.titleAr ||
+    experience.titleEn ||
+    experience.titleTr ||
+    experience.titleFr ||
+    experience.titleDe ||
+    "محتوى بدون عنوان"
+  );
+}
+
+function getContentLocation(experience) {
+  return (
+    experience.cityAr ||
+    experience.countryAr ||
+    experience.cityEn ||
+    experience.countryEn ||
+    experience.cityFr ||
+    experience.countryFr ||
+    "غير محدد"
+  );
+}
+
+function getContentSubtitle(experience) {
+  const alternatives = [
+    experience.titleEn,
+    experience.titleTr,
+    experience.titleFr,
+    experience.titleDe,
+    experience.titleEs,
+    experience.titleIt,
+    experience.titleRu,
+  ].filter(Boolean);
+
+  return alternatives.slice(0, 2).join(" / ") || "لا توجد ترجمة إضافية";
+}
+
+function getTranslationsCount(experience) {
+  return contentLanguages.filter((language) => {
+    const title = experience[`title${language.suffix}`];
+    return typeof title === "string" && title.trim() !== "";
+  }).length;
+}
+
+function getBookingPrice(booking) {
+  if (!booking.priceAtBooking) {
+    return "-";
+  }
+
+  return `${booking.priceAtBooking} ${booking.currency || "$"}`;
+}
 
 function AdminDashboard() {
   const navigate = useNavigate();
@@ -332,24 +493,23 @@ function AdminDashboard() {
   function startEditExperience(experience) {
     setEditingExperienceId(experience._id);
 
+    const localizedFields = contentLanguages.reduce((fields, language) => {
+      fields[`title${language.suffix}`] =
+        experience[`title${language.suffix}`] || "";
+      fields[`country${language.suffix}`] =
+        experience[`country${language.suffix}`] || "";
+      fields[`city${language.suffix}`] =
+        experience[`city${language.suffix}`] || "";
+      fields[`description${language.suffix}`] =
+        experience[`description${language.suffix}`] || "";
+
+      return fields;
+    }, {});
+
     setExperienceForm({
       category: experience.category || "tour",
 
-      titleAr: experience.titleAr || "",
-      titleEn: experience.titleEn || "",
-      titleTr: experience.titleTr || "",
-
-      countryAr: experience.countryAr || "",
-      countryEn: experience.countryEn || "",
-      countryTr: experience.countryTr || "",
-
-      cityAr: experience.cityAr || "",
-      cityEn: experience.cityEn || "",
-      cityTr: experience.cityTr || "",
-
-      descriptionAr: experience.descriptionAr || "",
-      descriptionEn: experience.descriptionEn || "",
-      descriptionTr: experience.descriptionTr || "",
+      ...localizedFields,
 
       price: experience.price || "",
       currency: experience.currency || "$",
@@ -384,25 +544,30 @@ function AdminDashboard() {
       return;
     }
 
+    const localizedData = contentLanguages.reduce((data, language) => {
+      data[`title${language.suffix}`] =
+        experienceForm[`title${language.suffix}`]?.trim() || "";
+
+      data[`country${language.suffix}`] =
+        experienceForm[`country${language.suffix}`]?.trim() || "";
+
+      data[`city${language.suffix}`] =
+        experienceForm[`city${language.suffix}`]?.trim() || "";
+
+      data[`description${language.suffix}`] =
+        experienceForm[`description${language.suffix}`]?.trim() || "";
+
+      return data;
+    }, {});
+
+    localizedData.countryAr = localizedData.countryAr || "غير محدد";
+    localizedData.descriptionAr =
+      localizedData.descriptionAr || "لا يوجد وصف حاليًا";
+
     const experienceData = {
       category: experienceForm.category,
 
-      titleAr: experienceForm.titleAr.trim(),
-      titleEn: experienceForm.titleEn.trim(),
-      titleTr: experienceForm.titleTr.trim(),
-
-      countryAr: experienceForm.countryAr.trim() || "غير محدد",
-      countryEn: experienceForm.countryEn.trim(),
-      countryTr: experienceForm.countryTr.trim(),
-
-      cityAr: experienceForm.cityAr.trim(),
-      cityEn: experienceForm.cityEn.trim(),
-      cityTr: experienceForm.cityTr.trim(),
-
-      descriptionAr:
-        experienceForm.descriptionAr.trim() || "لا يوجد وصف حاليًا",
-      descriptionEn: experienceForm.descriptionEn.trim(),
-      descriptionTr: experienceForm.descriptionTr.trim(),
+      ...localizedData,
 
       price: Number(experienceForm.price),
       currency: experienceForm.currency.trim() || "$",
@@ -551,15 +716,17 @@ function AdminDashboard() {
     return experiences.filter((experience) => {
       const search = contentSearch.trim().toLowerCase();
 
-      const matchesSearch =
-        search === "" ||
-        experience.titleAr?.toLowerCase().includes(search) ||
-        experience.titleEn?.toLowerCase().includes(search) ||
-        experience.titleTr?.toLowerCase().includes(search) ||
-        experience.countryAr?.toLowerCase().includes(search) ||
-        experience.countryEn?.toLowerCase().includes(search) ||
-        experience.cityAr?.toLowerCase().includes(search) ||
-        experience.cityEn?.toLowerCase().includes(search);
+      const searchableText = contentLanguages
+        .flatMap((language) => [
+          experience[`title${language.suffix}`],
+          experience[`country${language.suffix}`],
+          experience[`city${language.suffix}`],
+        ])
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      const matchesSearch = search === "" || searchableText.includes(search);
 
       const matchesCategory =
         contentCategoryFilter === "all" ||
@@ -583,13 +750,39 @@ function AdminDashboard() {
 
   return (
     <main className="admin-dashboard-page">
-      <div className="admin-dashboard-header">
+      <div className="admin-dashboard-header admin-dashboard-header-pro">
         <div>
+          <span className="admin-kicker">Tourism Control Panel</span>
           <h1>لوحة تحكم الأدمن</h1>
-          <p>مرحبًا {adminName || "Admin"}</p>
+          <p>
+            مرحبًا {adminName || "Admin"}، يمكنك إدارة الحجوزات والمحتوى
+            والإعدادات من مكان واحد.
+          </p>
         </div>
 
-        <button onClick={handleLogout}>تسجيل الخروج</button>
+        <div className="admin-header-actions">
+          <button
+            type="button"
+            className="admin-secondary-action"
+            onClick={() => {
+              fetchBookings();
+              fetchExperiences();
+              setMessage("تم تحديث البيانات");
+            }}
+          >
+            تحديث البيانات
+          </button>
+
+          <button
+            type="button"
+            className="admin-secondary-action"
+            onClick={() => setActiveTab("content")}
+          >
+            إضافة محتوى
+          </button>
+
+          <button onClick={handleLogout}>تسجيل الخروج</button>
+        </div>
       </div>
 
       <div className="admin-tabs">
@@ -622,7 +815,9 @@ function AdminDashboard() {
         </button>
       </div>
 
-      {message && <p className="admin-info-message">{message}</p>}
+      {message && (
+        <p className="admin-info-message admin-floating-message">{message}</p>
+      )}
 
       {activeTab === "overview" && (
         <section className="admin-section">
@@ -748,13 +943,12 @@ function AdminDashboard() {
                         <td>{booking.phone}</td>
                         <td>{booking.email || "-"}</td>
                         <td>{booking.destination}</td>
-                        <td>{booking.category}</td>
-                        <td>{categoryLabels[booking.category] || "-"}</td>
                         <td>
-                          {booking.priceAtBooking
-                            ? `${booking.priceAtBooking} ${booking.currency || "$"}`
-                            : "-"}
+                          {categoryLabels[booking.category] ||
+                            booking.category ||
+                            "-"}
                         </td>
+                        <td>{getBookingPrice(booking)}</td>
                         <td>
                           {booking.people}
                           <br />
@@ -831,7 +1025,7 @@ function AdminDashboard() {
                     </p>
 
                     <p>
-                      <b>الإيميل:</b> {booking.email}
+                      <b>الإيميل:</b> {booking.email || "-"}
                     </p>
 
                     <p>
@@ -926,29 +1120,18 @@ function AdminDashboard() {
             onSubmit={handleExperienceSubmit}
           >
             <div className="admin-form-tabs">
-              <button
-                type="button"
-                className={activeFormLang === "ar" ? "active-form-tab" : ""}
-                onClick={() => setActiveFormLang("ar")}
-              >
-                العربي
-              </button>
-
-              <button
-                type="button"
-                className={activeFormLang === "en" ? "active-form-tab" : ""}
-                onClick={() => setActiveFormLang("en")}
-              >
-                English
-              </button>
-
-              <button
-                type="button"
-                className={activeFormLang === "tr" ? "active-form-tab" : ""}
-                onClick={() => setActiveFormLang("tr")}
-              >
-                Türkçe
-              </button>
+              {contentLanguages.map((language) => (
+                <button
+                  key={language.code}
+                  type="button"
+                  className={
+                    activeFormLang === language.code ? "active-form-tab" : ""
+                  }
+                  onClick={() => setActiveFormLang(language.code)}
+                >
+                  {language.tabLabel}
+                </button>
+              ))}
 
               <button
                 type="button"
@@ -961,115 +1144,44 @@ function AdminDashboard() {
               </button>
             </div>
 
-            {activeFormLang === "ar" && (
-              <>
-                <h3 className="admin-form-heading">البيانات العربية</h3>
+            {contentLanguages.map(
+              (language) =>
+                activeFormLang === language.code && (
+                  <div className="admin-language-panel" key={language.code}>
+                    <h3 className="admin-form-heading">{language.heading}</h3>
 
-                <input
-                  type="text"
-                  name="titleAr"
-                  placeholder="العنوان بالعربية"
-                  value={experienceForm.titleAr}
-                  onChange={handleExperienceFormChange}
-                />
+                    <input
+                      type="text"
+                      name={`title${language.suffix}`}
+                      placeholder={language.titlePlaceholder}
+                      value={experienceForm[`title${language.suffix}`]}
+                      onChange={handleExperienceFormChange}
+                    />
 
-                <input
-                  type="text"
-                  name="countryAr"
-                  placeholder="الدولة بالعربية"
-                  value={experienceForm.countryAr}
-                  onChange={handleExperienceFormChange}
-                />
+                    <input
+                      type="text"
+                      name={`country${language.suffix}`}
+                      placeholder={language.countryPlaceholder}
+                      value={experienceForm[`country${language.suffix}`]}
+                      onChange={handleExperienceFormChange}
+                    />
 
-                <input
-                  type="text"
-                  name="cityAr"
-                  placeholder="المدينة بالعربية"
-                  value={experienceForm.cityAr}
-                  onChange={handleExperienceFormChange}
-                />
+                    <input
+                      type="text"
+                      name={`city${language.suffix}`}
+                      placeholder={language.cityPlaceholder}
+                      value={experienceForm[`city${language.suffix}`]}
+                      onChange={handleExperienceFormChange}
+                    />
 
-                <textarea
-                  name="descriptionAr"
-                  placeholder="الوصف بالعربية"
-                  value={experienceForm.descriptionAr}
-                  onChange={handleExperienceFormChange}
-                ></textarea>
-              </>
-            )}
-
-            {activeFormLang === "en" && (
-              <>
-                <h3 className="admin-form-heading">English Data</h3>
-
-                <input
-                  type="text"
-                  name="titleEn"
-                  placeholder="Title in English"
-                  value={experienceForm.titleEn}
-                  onChange={handleExperienceFormChange}
-                />
-
-                <input
-                  type="text"
-                  name="countryEn"
-                  placeholder="Country in English"
-                  value={experienceForm.countryEn}
-                  onChange={handleExperienceFormChange}
-                />
-
-                <input
-                  type="text"
-                  name="cityEn"
-                  placeholder="City in English"
-                  value={experienceForm.cityEn}
-                  onChange={handleExperienceFormChange}
-                />
-
-                <textarea
-                  name="descriptionEn"
-                  placeholder="Description in English"
-                  value={experienceForm.descriptionEn}
-                  onChange={handleExperienceFormChange}
-                ></textarea>
-              </>
-            )}
-
-            {activeFormLang === "tr" && (
-              <>
-                <h3 className="admin-form-heading">Türkçe Bilgiler</h3>
-
-                <input
-                  type="text"
-                  name="titleTr"
-                  placeholder="Türkçe başlık"
-                  value={experienceForm.titleTr}
-                  onChange={handleExperienceFormChange}
-                />
-
-                <input
-                  type="text"
-                  name="countryTr"
-                  placeholder="Türkçe ülke"
-                  value={experienceForm.countryTr}
-                  onChange={handleExperienceFormChange}
-                />
-
-                <input
-                  type="text"
-                  name="cityTr"
-                  placeholder="Türkçe şehir"
-                  value={experienceForm.cityTr}
-                  onChange={handleExperienceFormChange}
-                />
-
-                <textarea
-                  name="descriptionTr"
-                  placeholder="Türkçe açıklama"
-                  value={experienceForm.descriptionTr}
-                  onChange={handleExperienceFormChange}
-                ></textarea>
-              </>
+                    <textarea
+                      name={`description${language.suffix}`}
+                      placeholder={language.descriptionPlaceholder}
+                      value={experienceForm[`description${language.suffix}`]}
+                      onChange={handleExperienceFormChange}
+                    ></textarea>
+                  </div>
+                ),
             )}
 
             {activeFormLang === "general" && (
@@ -1176,6 +1288,27 @@ function AdminDashboard() {
               </>
             )}
 
+            <div className="admin-live-preview-card">
+              <div>
+                <span>معاينة سريعة</span>
+                <h3>{experienceForm.titleAr || "عنوان المحتوى"}</h3>
+                <p>
+                  {experienceForm.cityAr ||
+                    experienceForm.countryAr ||
+                    "المكان غير محدد"}
+                </p>
+                <strong>
+                  {experienceForm.price || 0} {experienceForm.currency || "$"}
+                </strong>
+              </div>
+
+              {experienceForm.image ? (
+                <img src={experienceForm.image} alt="معاينة المحتوى" />
+              ) : (
+                <div className="admin-live-preview-placeholder">صورة</div>
+              )}
+            </div>
+
             <div className="admin-form-actions">
               <button type="submit" disabled={isSavingExperience}>
                 {isSavingExperience
@@ -1253,7 +1386,7 @@ function AdminDashboard() {
                         <td>
                           <img
                             src={experience.image}
-                            alt={experience.titleAr}
+                            alt={getContentTitle(experience)}
                             className="admin-destination-img"
                           />
                         </td>
@@ -1261,16 +1394,25 @@ function AdminDashboard() {
                         <td>{categoryLabels[experience.category]}</td>
 
                         <td>
-                          {experience.titleAr}
+                          {getContentTitle(experience)}
                           <br />
-                          <small>{experience.titleEn || "-"}</small>
+                          <small>{getContentSubtitle(experience)}</small>
+                          <br />
+                          <small>
+                            ترجمات: {getTranslationsCount(experience)} /{" "}
+                            {contentLanguages.length}
+                          </small>
                         </td>
 
                         <td>
-                          {experience.cityAr || experience.countryAr}
+                          {getContentLocation(experience)}
                           <br />
                           <small>
-                            {experience.cityEn || experience.countryEn || "-"}
+                            {experience.cityEn ||
+                              experience.countryEn ||
+                              experience.cityFr ||
+                              experience.countryFr ||
+                              "-"}
                           </small>
                         </td>
 
@@ -1313,19 +1455,18 @@ function AdminDashboard() {
                   <div className="admin-mobile-card" key={experience._id}>
                     <img
                       src={experience.image}
-                      alt={experience.titleAr}
+                      alt={getContentTitle(experience)}
                       className="mobile-card-img"
                     />
 
-                    <h3>{experience.titleAr}</h3>
+                    <h3>{getContentTitle(experience)}</h3>
 
                     <p>
                       <b>التصنيف:</b> {categoryLabels[experience.category]}
                     </p>
 
                     <p>
-                      <b>المكان:</b>{" "}
-                      {experience.cityAr || experience.countryAr || "غير محدد"}
+                      <b>المكان:</b> {getContentLocation(experience)}
                     </p>
 
                     <p>

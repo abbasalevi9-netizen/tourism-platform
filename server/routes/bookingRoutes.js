@@ -1,10 +1,36 @@
 const express = require("express");
+const jwt = require("jsonwebtoken");
 const Booking = require("../models/Booking");
+const User = require("../models/User");
 const { protect, adminOnly } = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
-router.post("/", async (req, res) => {
+async function optionalAuth(req, res, next) {
+  try {
+    let token;
+
+    if (
+      req.headers.authorization &&
+      req.headers.authorization.startsWith("Bearer")
+    ) {
+      token = req.headers.authorization.split(" ")[1];
+    }
+
+    if (!token) {
+      return next();
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = await User.findById(decoded.id).select("-password");
+
+    next();
+  } catch (error) {
+    next();
+  }
+}
+
+router.post("/", optionalAuth, async (req, res) => {
   try {
     const {
       name,
@@ -35,9 +61,11 @@ router.post("/", async (req, res) => {
     const finalPeople = Number(people) || finalAdults + finalChildren;
 
     const booking = await Booking.create({
+      userId: req.user?._id || null,
+
       name,
       phone,
-      email: email || "",
+      email: email || req.user?.email || "",
       destination,
 
       experienceId: experienceId || null,
@@ -66,10 +94,27 @@ router.post("/", async (req, res) => {
   }
 });
 
+router.get("/my-bookings", protect, async (req, res) => {
+  try {
+    const bookings = await Booking.find({
+      $or: [{ userId: req.user._id }, { email: req.user.email }],
+    })
+      .populate("experienceId")
+      .sort({ createdAt: -1 });
+
+    res.json(bookings);
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+});
+
 router.get("/", protect, adminOnly, async (req, res) => {
   try {
     const bookings = await Booking.find()
       .populate("experienceId")
+      .populate("userId", "name email role")
       .sort({ createdAt: -1 });
 
     res.json(bookings);
@@ -90,7 +135,7 @@ router.put("/:id/status", protect, adminOnly, async (req, res) => {
       {
         new: true,
         runValidators: true,
-      }
+      },
     );
 
     if (!booking) {
@@ -117,7 +162,7 @@ router.put("/:id/payment", protect, adminOnly, async (req, res) => {
       {
         new: true,
         runValidators: true,
-      }
+      },
     );
 
     if (!booking) {

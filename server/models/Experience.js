@@ -1,5 +1,56 @@
 const mongoose = require("mongoose");
 
+const languageSuffixes = [
+  "Ar",
+  "ArEg",
+  "ArMa",
+  "ArDz",
+  "En",
+  "Tr",
+  "Fr",
+  "De",
+  "Es",
+  "It",
+  "Ru",
+];
+
+function createLocalizedStringFields(baseName) {
+  const fields = {};
+
+  languageSuffixes.forEach((suffix) => {
+    fields[`${baseName}${suffix}`] = {
+      type: String,
+      trim: true,
+      default: "",
+    };
+  });
+
+  return fields;
+}
+
+const titleFields = createLocalizedStringFields("title");
+titleFields.titleAr = {
+  type: String,
+  required: true,
+  trim: true,
+};
+
+const countryFields = createLocalizedStringFields("country");
+countryFields.countryAr = {
+  type: String,
+  trim: true,
+  default: "غير محدد",
+};
+
+const cityFields = createLocalizedStringFields("city");
+
+const descriptionFields = createLocalizedStringFields("description");
+descriptionFields.descriptionAr = {
+  type: String,
+  trim: true,
+  default: "لا يوجد وصف حاليًا",
+};
+
 const experienceSchema = new mongoose.Schema(
   {
     category: {
@@ -9,74 +60,10 @@ const experienceSchema = new mongoose.Schema(
       default: "tour",
     },
 
-    titleAr: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-
-    titleEn: {
-      type: String,
-      trim: true,
-      default: "",
-    },
-
-    titleTr: {
-      type: String,
-      trim: true,
-      default: "",
-    },
-
-    countryAr: {
-      type: String,
-      trim: true,
-      default: "غير محدد",
-    },
-
-    countryEn: {
-      type: String,
-      trim: true,
-      default: "",
-    },
-
-    countryTr: {
-      type: String,
-      trim: true,
-      default: "",
-    },
-
-    cityAr: {
-      type: String,
-      trim: true,
-      default: "",
-    },
-
-    cityEn: {
-      type: String,
-      trim: true,
-      default: "",
-    },
-
-    cityTr: {
-      type: String,
-      trim: true,
-      default: "",
-    },
-
-    descriptionAr: {
-      type: String,
-      default: "لا يوجد وصف حاليًا",
-    },
-
-    descriptionEn: {
-      type: String,
-      default: "",
-    },
-
-    descriptionTr: {
-      type: String,
-      default: "",
-    },
+    ...titleFields,
+    ...countryFields,
+    ...cityFields,
+    ...descriptionFields,
 
     price: {
       type: Number,
@@ -120,7 +107,7 @@ const experienceSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 module.exports = mongoose.model("Experience", experienceSchema);

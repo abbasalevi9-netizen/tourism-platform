@@ -12,6 +12,7 @@ import DestinationsPage from "./pages/DestinationsPage";
 import OffersPage from "./pages/OffersPage";
 import BookingPage from "./pages/BookingPage";
 import ContactPage from "./pages/ContactPage";
+import MyAccount from "./pages/MyAccount";
 import DestinationDetails from "./pages/DestinationDetails";
 import ExperienceDetails from "./pages/ExperienceDetails";
 
@@ -39,7 +40,7 @@ function AppLayout() {
         <Route path="/offers" element={<OffersPage />} />
         <Route path="/booking" element={<BookingPage />} />
         <Route path="/contact" element={<ContactPage />} />
-
+        <Route path="/my-account" element={<MyAccount />} />
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
 

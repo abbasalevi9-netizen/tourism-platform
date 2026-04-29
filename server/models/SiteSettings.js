@@ -2,6 +2,12 @@ const mongoose = require("mongoose");
 
 const siteSettingsSchema = new mongoose.Schema(
   {
+    logoUrl: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
     siteNameAr: {
       type: String,
       default: "رحّال",

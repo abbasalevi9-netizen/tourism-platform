@@ -32,6 +32,12 @@ const bookingSchema = new mongoose.Schema(
       default: null,
     },
 
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+
     experienceTitle: {
       type: String,
       default: "",
@@ -100,7 +106,7 @@ const bookingSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 module.exports = mongoose.model("Booking", bookingSchema);
